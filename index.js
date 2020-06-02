@@ -27,18 +27,17 @@ function LinkedInPdfToJson() {
 
     // possible section headers that are currently supported
     this.SECTION_HEADERS = {
-        'Top Skills': 'skills',
-        'Contact': 'Contact',
-        'Education': 'educationExperience',
-        'Languages': 'languages',
-        'Certifications': 'certifications',
         'Summary': 'bio',
+        'Languages': 'languages',
+        'Education': 'educationExperience',
         'Experience': 'workExperience',
+        'Skills & Expertise': 'skills',
+        'Volunteer Experience': 'volunteerExperience',
         'Unsupported': 'unsupported'
     };
 
     // currently unsupported sections
-    this.UNSUPPORTED_SECTIONS = ['Publications', 'Projects', 'Organizations', 'Test Scores', 'Specialties', 'Honors and Awards', 'Interests', 'Courses', 'recommendations', 'Patents'];
+    this.UNSUPPORTED_SECTIONS = ['Publications', 'Projects', 'Certifications', 'Organizations', 'Test Scores', 'Specialties', 'Honors and Awards', 'Interests', 'Courses', 'recommendations', 'Patents'];
 
     // available token values
     this.TOKENS = {
@@ -65,12 +64,10 @@ function LinkedInPdfToJson() {
 
 // Main runner function
 LinkedInPdfToJson.prototype.run = function(source, target, options) {
-    //console.log(source,target)
     this.pdf = source;
     this.target = target;
     this.whiteSpace = options.space || this.whiteSpace;
     var linkedinPdfToJson = this;
-    //console.log(source,target)
 
     // Callback function for the pdf-text module.
     // This function starts the first call to actually parse the chunks array.
@@ -127,34 +124,11 @@ LinkedInPdfToJson.prototype.parseSection = function() {
     if (this.section !== 'unsupported') {
         this.json[this.section] = this.json[this.section] || {};
     }
-    if (this.section === this.SECTION_HEADERS['Top Skills']) {
-        this.getNextToken();
-        if (this.token === this.TOKENS.SKILL) {
-            this.parseSkillsAndExpertise();
-        } else {
-            throw new Error(this.parsingErrorMsg + '\'' + this.text + '\'');
-        }
-
-        // TODO: Implement the rest of the unsupported this.sections
-        // This marks the start of the unsupported this.sections
-        // See global UNSUPPORTED_SECTIONS variable at the top for a list of
-        // all the unsupported this.sections.
-    }
-    else if (this.section === this.SECTION_HEADERS.Summary) {
+    if (this.section === this.SECTION_HEADERS.Summary) {
         this.getNextToken();
         if (this.token === this.TOKENS.SECTION_CONTENT) {
             this.json[this.section] = [];
             this.parseSummary();
-        } else {
-            throw new Error(this.parsingErrorMsg + '\'' + this.text + '\'');
-        }
-    }
-    else if (this.section === this.SECTION_HEADERS.Languages) {
-        this.getNextToken();
-        if (this.token === this.TOKENS.LANGUAGE) {
-            while (this.section === this.SECTION_HEADERS.Languages) {
-                this.parseLanguages();
-            }
         } else {
             throw new Error(this.parsingErrorMsg + '\'' + this.text + '\'');
         }
@@ -182,7 +156,28 @@ LinkedInPdfToJson.prototype.parseSection = function() {
         } else {
             throw new Error(this.parsingErrorMsg + '\'' + this.text + '\'');
         }
-    }   else if (this.token === this.TOKENS.UNSUPPORTED || this.token === this.TOKENS.UNKNOWN) {
+    } else if (this.section === this.SECTION_HEADERS.Languages) {
+        this.getNextToken();
+        if (this.token === this.TOKENS.LANGUAGE) {
+            while (this.section === this.SECTION_HEADERS.Languages) {
+                this.parseLanguages();
+            }
+        } else {
+            throw new Error(this.parsingErrorMsg + '\'' + this.text + '\'');
+        }
+    } else if (this.section === this.SECTION_HEADERS['Skills & Expertise']) {
+        this.getNextToken();
+        if (this.token === this.TOKENS.SKILL) {
+            this.parseSkillsAndExpertise();
+        } else {
+            throw new Error(this.parsingErrorMsg + '\'' + this.text + '\'');
+        }
+
+        // TODO: Implement the rest of the unsupported this.sections
+        // This marks the start of the unsupported this.sections
+        // See global UNSUPPORTED_SECTIONS variable at the top for a list of
+        // all the unsupported this.sections.
+    } else if (this.token === this.TOKENS.UNSUPPORTED || this.token === this.TOKENS.UNKNOWN) {
         this.json[this.section] = this.json[this.section] || [];
         while (this.token === this.TOKENS.UNSUPPORTED || this.token === this.TOKENS.UNKNOWN) {
             if (this.json[this.section].indexOf(this.text) === -1) { // check is mainly for '...........' section separators to avoid redundant '.' elements
@@ -553,7 +548,7 @@ LinkedInPdfToJson.prototype.getNextToken = function() {
         } else {
             throw new Error(this.tokenErrorMsg + '\'' + this.text + '\'');
         }
-    } else if (this.section === this.SECTION_HEADERS['Top Skills']) {
+    } else if (this.section === this.SECTION_HEADERS['Skills & Expertise']) {
         if (this.isSkill()) {
             this.token = this.TOKENS.SKILL;
         } else {
@@ -615,10 +610,10 @@ LinkedInPdfToJson.prototype.isInUnsupported = function() {
 };
 
 // Checks if the text chunk is a skill.
-// @return true if the text chunk is a skill under the Top Skills section.
+// @return true if the text chunk is a skill under the Skills & Expertise section.
 // @return false otherwise.
 LinkedInPdfToJson.prototype.isSkill = function() {
-    return (this.token === this.TOKENS.SKILL || this.token === this.TOKENS.SECTION_HEADER) && this.section === this.SECTION_HEADERS['Top Skills'];
+    return (this.token === this.TOKENS.SKILL || this.token === this.TOKENS.SECTION_HEADER) && this.section === this.SECTION_HEADERS['Skills & Expertise'];
 };
 
 // Checks if the text chunk is a school.
